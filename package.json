@@ -9,8 +9,11 @@
   "author": "Yasar",
   "license": "ISC",
   "dependencies": {
+    "cookie-parser": "^1.4.6",
     "ejs": "^3.1.6",
     "express": "^4.17.2",
-    "socket.io": "^4.4.0"
+    "express-session": "^1.17.2",
+    "socket.io": "^4.4.0",
+    "uuid": "^8.3.2"
   }
 }
