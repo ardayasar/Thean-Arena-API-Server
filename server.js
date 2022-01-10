@@ -15,8 +15,9 @@ var bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 var path = require('path');
 var genid=require('uuid');
+// const database  = require('./databaseFunctions');
+const codeList  = require('./errors');
 const port = 1604
-const database  = require('./databaseFunctions');
 
 app.use(express.json());
 app.use(logErrors)
@@ -83,66 +84,59 @@ app.get('/', (req, res) => {
 
 app.get('/ulgn_p',(req, res) => {
   
-  var mail = req.query.mail;
-  var password = req.query.password;
-  
-  if(req.cookies.sessionID && !mail && !password){
+  if(req.cookies.sessionID && req.cookies.privateKey && req.cookies.username){
     if(req.cookies.expires === null){
       res.clearCookie();
-      res.send({"success": false, "reason":{"code": 1, "msg": "Login expired!", 'show': true}}); 
+      res.send(codeList.codeClient('failed', 1)); 
     }
     else{
 
       //Control database
       if(true){
 
-        res.send({"success": true, 'show': true});
+        res.send(codeList.codeClient('success', 1));
       }
       else{
-        res.send({"success": false, "reason":{"code": 1, "msg": "Login expired!", 'show': true}}); 
+        res.send(codeList.codeClient('failed', 1)); 
       }
       //Control database
     }
        
   }
   else{
-    if(mail && password){
-      res.clearCookie();
-      res.cookie('sessionID', genid.v4(), {
-        expires: expireTime
-      }); 
-      res.cookie('username', 'getFromDatabase', {
-        expires: expireTime
-      }); 
-      res.cookie('privateKey', genid.v4(), {
-        expires: expireTime
-      }); 
+    res.send(codeList.codeClient('failed', 3))
+  }
+});
 
-      res.send({"success": false, "reason":{"code": 0, "msg": "Login Needed", 'show': true}});
-    }
-    else if(!req.cookies.sessionID && !mail && !password){
-      res.send({"success": false, "reason":{"code": 3, "msg": "Not logged in!", 'show': false}});
-    }
-    else if(mail && !password || !mail && password){
-      res.send({"success": false, "reason":{"code": 2, "msg": "Missing mail or password!"}, 'show': true});
-    }
+app.get('/ulgn_f',(req, res) => {
+  var mail = req.query.mail;
+  var password = req.query.password;
+
+  if(mail && password){
+    res.clearCookie();
+    res.cookie('sessionID', genid.v4(), {
+      expires: expireTime
+    }); 
+    res.cookie('username', 'getFromDatabase', {
+      expires: expireTime
+    }); 
+    res.cookie('privateKey', genid.v4(), {
+      expires: expireTime
+    }); 
+
+    res.send(codeList.codeClient('success', 0));
+  }
+  else{
+    res.send(codeList.codeClient('failed', 2));
   }
 
 });
 
-app.get('/cc',(req, res) => {
-  res.clearCookie();
-  res.clearCookie();
-      res.cookie('sessionID', genid.v4(), {
-        expires: new Date(Date.now() + 10000) 
-      }); 
-      res.cookie('username', 'getFromDatabase', {
-        expires: expireTime
-      }); 
-      res.cookie('privateKey', genid.v4(), {
-        expires: expireTime
-      }); 
-  res.send("Created!")
+
+
+
+app.get('/test',(req, res) => {
+  res.sendFile(path.join(__dirname) + '/client-side/index.html');
 });
 
 
