@@ -15,7 +15,7 @@ var bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 var path = require('path');
 var genid=require('uuid');
-// const database  = require('./databaseFunctions');
+const database  = require('./databaseFunctions');
 const codeList  = require('./errors');
 const port = 1604
 
@@ -48,17 +48,6 @@ var permissions = {
 // console.log(database.checkUser("aaaa", "bbbb"));
 
 var expireTime = new Date(Date.now() + (60 * 60 *24 * 1000)) 
-
-// ||||||||||||||||||||||
-// ||     Database     ||
-// ||||||||||||||||||||||
-
-// var connection = mysql.createConnection({
-// 	host     : 'localhost',
-// 	user     : 'root',
-// 	password : '',
-// 	database : 'thetanAPI'
-// });
 
 // ||||||||||||||||||||||
 // || Session & Cookie ||
@@ -114,6 +103,9 @@ app.get('/ulgn_f',(req, res) => {
 
   if(mail && password){
     res.clearCookie();
+
+    database.login(mail);
+
     res.cookie('sessionID', genid.v4(), {
       expires: expireTime
     }); 
