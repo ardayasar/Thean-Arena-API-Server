@@ -1,7 +1,0 @@
-{
-    "email":{
-        "subscription": 0,
-        "requestDelay": 15,
-        "lastRequest": 1 //Math.floor(Date.now()/1000)
-    }
-}

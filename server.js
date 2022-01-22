@@ -17,7 +17,6 @@ var path = require('path');
 var genid=require('uuid');
 const database  = require('./databaseFunctions');
 const codeList  = require('./errors');
-var mysql = require('mysql');
 const port = 1604
 
 app.use(express.json());
@@ -45,22 +44,6 @@ var permissions = {
     max_capacity: 720
   }
 }
-
-// ||||||||||||||||||||||
-// ||    Connection    ||
-// ||||||||||||||||||||||
-
-// var connection = mysql.createConnection({
-// 	host     : 'localhost',
-// 	user     : 'root',
-// 	password : '',
-// 	database : 'thetanapi'
-// });
-
-// connection.connect(function(err) {
-//   if (err) throw err;
-//   console.info(colours.fg.green, "Connected to database thetanAPI", colours.fg.white);
-// });
 
 // ||||||||||||||||||||||
 // ||      Colors      ||
@@ -233,7 +216,7 @@ app.get('/test',(req, res) => {
 app.get('/hero', (req, res) => {
 
   // TODO: Control users permission
-
+  // SEND LAST 16 DATA TO USER!!!! CLIENT WILL LOOK IF DATA CHANGED!
   if(req.sess){
     res.status(200).send(
       {
@@ -241,21 +224,33 @@ app.get('/hero', (req, res) => {
       });
   }
 
-})
+});
 
-app.post('/hero', (req, res) => {
+// || Server-Side List Posting!
+
+app.post('/addhero', (req, res) => {
     try {
-      if(req.body.Lkey == "permission_key"){
-        res.send({'key': true, 'information': req.body})
-        console.log(req.body)
-        //TODO: Data will be added to json and MySQL database. 
+      if(req.body.Lkey == ""){
+        var refId = req.body.heroId;
+        var name = req.body.name;
+        var total = req.body.total;
+        var used = req.body.used;
+        var price = req.body.price;
+        var photo = req.body.photo;
+        var skinName = req.body.skinName;
+
+        database.addhero(refId, name, total, used, price, photo, skinName);
+        
+        res.status(200).send({'key': true, 'information': req.body});
+        //TODO: Data will be added to MySQL database. 
         //
-      }
+      } 
       else{
         res.status(401).send({'status': false})
         console.log("Unauthorized")
       }
     } catch (error) {
+      console.log(error);
       res.status(401).send({'status': false})
     }
 });

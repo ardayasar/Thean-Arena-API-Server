@@ -188,13 +188,30 @@ function loginAccept(num, email, sessionID, privateKey, ip) {
 }
 
 function log(email, ip, code){
-    //Log everything
     var text = logCodeList[code];
     try {
         var sql = 'INSERT INTO logs (ip, email, code) VALUES (?, ?, ?)';
         connection.query(sql, [ip, email, text], function (err, result) {
             if (err){
-                console.log(colours.fg.red, 'LOG | MYSQL thrown error with ' + email, colours.fg.white);
+                console.error(colours.fg.red, 'LOG | MYSQL thrown error with ' + email, colours.fg.white);
+            }
+        });
+    } catch (error) {
+        console.warn(colours.fg.yellow, error);
+    }
+}
+
+
+// ||  API SIDE  ||
+
+exports.addhero = (charachter_refId, charachter_name, charachter_battle_total, charachter_battle_used, charachter_price, character_photo_id, characket_skin_name) => {
+    try {
+        var sql = 'INSERT INTO char_list (charachter_refId, charachter_name, charachter_battle_total, charachter_battle_used, charachter_price, character_photo_id, characket_skin_name) VALUES (?, ?, ?, ?, ?, ?, ?)';
+        connection.query(sql, [charachter_refId, charachter_name, charachter_battle_total, charachter_battle_used, charachter_price, character_photo_id, characket_skin_name], function (err, result) {
+            if (err){
+                console.error(colours.fg.red, 'addHero | MYSQL thrown error with ' + email, colours.fg.white);
+            }else{
+                console.log(colours.fg.green, `✅ 💾 New hero added: [${charachter_refId}]`, colours.reset);
             }
         });
     } catch (error) {
