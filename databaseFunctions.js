@@ -41,7 +41,9 @@ const logCodeList = {
     2: "Account not found!",
     3: "Session granted to the account!",
     4: "Session not accepted for account!",
-    5: "Account not found while checking the session!"
+    5: "Account not found while checking the session!",
+    6: "New request income from API",
+    7: "Credentials not matched!"
 };
 
 
@@ -132,8 +134,8 @@ exports.checkSession = async (email, sessionID, privateKey, ip) => {
 
                 if(result.length == 1){
 
-                    var  sessionDB= result[0]['session'];
-                    var  privateDB= result[0]['privateKey'];
+                    var sessionDB = result[0]['session'];
+                    var privateDB = result[0]['privateKey'];
 
                     if(sessionID == sessionDB && privateKey == privateDB){
                         loginAccept(1, email, sessionID, privateKey, ip);
@@ -157,6 +159,108 @@ exports.checkSession = async (email, sessionID, privateKey, ip) => {
     
     })
 
+}
+
+exports.controlUserToken = async (email, sessionID, privateKey, ip) => {
+    return new Promise(resolve =>{
+        try {
+            var sql = 'SELECT session, privateKey FROM users WHERE email = ?';
+            connection.query(sql, [email], function (err, result) {
+    
+                if (err){
+                    console.log(colours.fg.red, 'controlUserToken | MYSQL thrown error with ' + email, colours.fg.white);
+                    resolve(0);
+                }
+
+                if(result.length == 1){
+
+                    var  sessionDB= result[0]['session'];
+                    var  privateDB= result[0]['privateKey'];
+
+                    if(sessionID == sessionDB && privateKey == privateDB){
+                        log(email, ip, 6);
+                        resolve(1);
+                    }
+                    else{
+                        log(email, ip, 7);
+                        resolve(0);
+                    }
+                }
+                else{
+                    resolve(0);
+                }
+            });
+        } catch (error) {
+            console.warn(colours.fg.yellow, error);
+            resolve(0);
+        }
+    
+    });
+}
+
+exports.getUserRank = async (email) => {
+    return new Promise(resolve =>{
+        try {
+            var sql = 'SELECT rank FROM users WHERE email = ?';
+            connection.query(sql, [email], function (err, result) {
+                if (err){
+                    console.log(colours.fg.red, 'getUserRank | MYSQL thrown error with ' + email, colours.fg.white);
+                    resolve(0);
+                }
+
+                if(result.length == 1){
+                    var rank = result[0]['rank'];
+                    resolve(rank+1);
+                }
+                else{
+                    resolve(0);
+                }
+            });
+        } catch (error) {
+            console.warn(colours.fg.yellow, error);
+            resolve(0);
+        }
+    })
+
+}
+
+exports.getLastReq = async (email) => {
+    return new Promise(resolve =>{
+        try {
+            var sql = 'SELECT lastReq FROM users WHERE email = ?';
+            connection.query(sql, [email], function (err, result) {
+                if (err){
+                    console.log(colours.fg.red, 'getLastReq | MYSQL thrown error with ' + email, colours.fg.white);
+                    resolve(0);
+                }
+
+                if(result.length == 1){
+                    var lastReq = result[0]['lastReq'];
+                    resolve(lastReq);
+                }
+                else{
+                    resolve(0);
+                }
+            });
+        } catch (error) {
+            console.warn(colours.fg.yellow, error);
+            resolve(0);
+        }
+    })
+}
+
+exports.setLastReq = (now, email) => {
+    try {
+        var sql = 'UPDATE users SET lastReq = ? WHERE email = ?';
+        connection.query(sql, [now, email], function (err, result) {
+            if (err){
+                console.log(colours.fg.red, 'setLastReq | MYSQL thrown error with ' + email, colours.fg.white);
+
+            }
+        });
+    } catch (error) {
+        console.warn(colours.fg.yellow, error);
+    }
 }
 
 function loginAccept(num, email, sessionID, privateKey, ip) {

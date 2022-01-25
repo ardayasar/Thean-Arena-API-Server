@@ -11,12 +11,15 @@ const http = require('http');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
-var bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
-var path = require('path');
-var genid=require('uuid');
 const database  = require('./databaseFunctions');
 const codeList  = require('./errors');
+var bodyParser = require('body-parser');
+var path = require('path');
+var genid = require('uuid');
+var mainmod = require('./maintenance_mode');
+const req = require('express/lib/request');
+const e = require('express');
 const port = 1604
 
 app.use(express.json());
@@ -27,23 +30,25 @@ app.use(cookieParser());
 app.use(bodyParser.urlencoded({extended : true}));
 app.use(bodyParser.json());
 
+
 var permissions = {
-  normal_user:{
+  1:{
     renew_time: 15,
     priority: 0,
     max_capacity: 240
   },
-  gold_user:{
+  2:{
     renew_time: 10,
     priority: 1,
     max_capacity: 360
   },
-  plat_user:{
+  3:{
     renew_time: 5,
     priority: 2,
     max_capacity: 720
   }
 }
+
 
 // ||||||||||||||||||||||
 // ||      Colors      ||
@@ -103,11 +108,16 @@ var expireTime = new Date(Date.now() + (60 * 60 *24 * 1000))
 
 app.get('/', (req, res) => {
 
+  var ip = req.socket.remoteAddress.split(':')[3];
 
-  res.send('Completed');
+  if(mainmod.getMain() == false){
+    res.send('Completed');
+  }
+  else{
+    res.status(500).send({status: 'maintenance'});
+  }
 
-})
-
+});
 
 // || Login With Session ||
 
@@ -213,20 +223,58 @@ app.get('/test',(req, res) => {
 // ||        API       || SECRET
 // |||||||||||||||||||||| SECRET
 
-app.get('/hero', (req, res) => {
-
-  // TODO: Control users permission
-  // SEND LAST 16 DATA TO USER!!!! CLIENT WILL LOOK IF DATA CHANGED!
-  if(req.sess){
-    res.status(200).send(
-      {
-        'status': true
-      });
+app.get('/gethero', (req, res) => {
+  try{
+    (async() => { 
+      if(req.cookies.sessionID && req.cookies.privateKey && req.cookies.email){ //Check Session
+        var mail = req.cookies.email;
+        var privateKey = req.cookies.privateKey;
+        var sessionID = req.cookies.sessionID;
+        var ip = req.socket.remoteAddress;
+        var controlUserToken = await database.controlUserToken(mail, sessionID, privateKey, ip); 
+        
+        if(controlUserToken == 1){ //Check if user valid
+          var subscription = await database.getUserRank(mail); //Get user subscription
+    
+          if(subscription != 0){
+    
+            var renewTime = permissions[subscription].renew_time; //Renew time for subscription
+            var lastReq = await database.getLastReq(mail); //Get last API request as time data
+            var now = Date.now(); //Get time data to control
+    
+            if(lastReq != 0){ // If request time is availible.
+              if(((now - lastReq)/1000) > renewTime){ // Check if request time has skipped sub time
+                database.setLastReq(now, mail); // Set last request time.
+                res.send({success: true, data:{0:{},1:{},2:{}}}); // Send the hero data where last 16
+              }
+              else{
+                res.send({success: "wait", waitTime: (renewTime - ((now - lastReq)/1000))}); // Client will send request by waitTime delayed
+              }
+            }
+            else{ //If request is new, set new request time
+              database.setLastReq(now, mail);
+              res.send({success: true, data:{0:{},1:{},2:{}}}); // Send first API
+            }
+          }
+          else{
+            res.send({success: false}); // No subscription found!
+          }
+        }
+        else{
+          res.send({success: false});
+        }
+      }
+      else{
+        res.send({success: false});
+      }
+    })();
   }
-
+  catch(error){
+    console.log(error);
+  }
 });
 
-// || Server-Side List Posting!
+// || Server-Side List Posting! ||
 
 app.post('/addhero', (req, res) => {
     try {
@@ -242,8 +290,6 @@ app.post('/addhero', (req, res) => {
         database.addhero(refId, name, total, used, price, photo, skinName);
         
         res.status(200).send({'key': true, 'information': req.body});
-        //TODO: Data will be added to MySQL database. 
-        //
       } 
       else{
         res.status(401).send({'status': false})
@@ -254,8 +300,6 @@ app.post('/addhero', (req, res) => {
       res.status(401).send({'status': false})
     }
 });
-
-
 
 
 function logErrors (err, req, res, next) {
@@ -275,6 +319,12 @@ function clientErrorHandler (err, req, res, next) {
     next(err)
   }
 }
+
+// || 404 Page ||
+
+app.use(function(req, res, next) {
+  res.status(404).send({code: 404, msg:`No, not today dude. Don't even think it.`});
+});
 
 server.listen(port, () => {
   console.log(`Server started at http://localhost:${port}`)
